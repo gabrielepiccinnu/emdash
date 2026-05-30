@@ -275,6 +275,9 @@ async function writeDescriptor(ctx: WriteDescriptorContext): Promise<DescriptorF
 		allowedHosts: manifest.allowedHosts,
 		storage: manifest.storage,
 		...(manifest.admin.pages.length > 0 ? { adminPages: manifest.admin.pages } : {}),
+		...(manifest.admin.nav && manifest.admin.nav.length > 0
+			? { adminNav: manifest.admin.nav }
+			: {}),
 		...(manifest.admin.widgets.length > 0 ? { adminWidgets: manifest.admin.widgets } : {}),
 	};
 

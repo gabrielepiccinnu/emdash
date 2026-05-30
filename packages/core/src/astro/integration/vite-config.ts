@@ -8,7 +8,7 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { AstroConfig } from "astro";
 import type { Plugin } from "vite";
@@ -83,8 +83,8 @@ function linguiMacroPlugin(adminSourcePath: string, adminDistPath: string): Plug
 			}
 		},
 		async transform(code, id) {
-			if (!id.startsWith(adminSourcePath) || !code.includes("@lingui")) return;
-			const { transformAsync } = (await import(babelCorePath)) as typeof import("@babel/core");
+			if (id.includes("/node_modules/") || !code.includes("@lingui")) return;
+			const { transformAsync } = (await import(pathToFileURL(babelCorePath).href)) as typeof import("@babel/core");
 			const result = await transformAsync(code, {
 				filename: id,
 				plugins: ["@lingui/babel-plugin-lingui-macro"],

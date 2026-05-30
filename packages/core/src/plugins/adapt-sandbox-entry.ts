@@ -283,6 +283,9 @@ export function adaptSandboxEntry(
 	if (descriptor.adminPages) {
 		admin.pages = descriptor.adminPages;
 	}
+	if (descriptor.adminNav) {
+		admin.nav = descriptor.adminNav;
+	}
 	if (descriptor.adminWidgets) {
 		admin.widgets = descriptor.adminWidgets;
 	}

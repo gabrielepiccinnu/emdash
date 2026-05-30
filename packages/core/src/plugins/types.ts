@@ -1081,13 +1081,51 @@ export interface PluginRoute<TInput = unknown> {
 // =============================================================================
 
 /**
- * Admin page definition
+ * Admin page definition.
+ *
+ * Route declaration: declares that a page exists at `/plugins/<id><path>`
+ * and how it is mounted. Independent from how it appears in the sidebar —
+ * navigation presentation is handled by `PluginAdminConfig.nav` (optional).
  */
 export interface PluginAdminPage {
 	path: string;
 	label: string;
 	icon?: string;
 }
+
+/**
+ * Leaf entry in the plugin admin sidebar — links to a registered admin page.
+ *
+ * `path` must match a `PluginAdminPage.path` declared on the same plugin;
+ * the sidebar skips leaves whose target path is missing.
+ */
+export interface PluginAdminNavLeaf {
+	label: string;
+	icon?: string;
+	/** Must match a `PluginAdminPage.path` on the same plugin */
+	path: string;
+}
+
+/**
+ * Group entry in the plugin admin sidebar — collapsible parent with leaf children.
+ *
+ * Groups never nest: `children` must be leaves only. This caps sidebar depth
+ * at 2 levels (group → leaf) to avoid IA cliffs.
+ */
+export interface PluginAdminNavGroup {
+	label: string;
+	icon?: string;
+	children: PluginAdminNavLeaf[];
+}
+
+/**
+ * Sidebar entry — either a direct leaf or a group containing leaves.
+ *
+ * `PluginAdminConfig.nav` is the navigation presentation layer, separate from
+ * `PluginAdminConfig.pages` (route declarations). Plugins that omit `nav`
+ * keep the legacy flat sidebar derived from `pages`.
+ */
+export type PluginAdminNav = PluginAdminNavLeaf | PluginAdminNavGroup;
 
 /**
  * Dashboard widget definition
@@ -1223,8 +1261,16 @@ export interface PluginAdminConfig {
 	entry?: string;
 	/** Settings schema for auto-generated UI */
 	settingsSchema?: Record<string, SettingField>;
-	/** Admin pages */
+	/** Admin pages — route declarations (what exists and how it mounts) */
 	pages?: PluginAdminPage[];
+	/**
+	 * Sidebar navigation — presentation layer, separate from `pages`.
+	 *
+	 * When present, the admin sidebar renders this tree (2 levels max).
+	 * When omitted, the sidebar derives a flat list from `pages`
+	 * (backward-compatible default — existing plugins are unaffected).
+	 */
+	nav?: PluginAdminNav[];
 	/** Dashboard widgets */
 	widgets?: PluginDashboardWidget[];
 	/** Portable Text block types this plugin provides */

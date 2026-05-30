@@ -29,6 +29,27 @@ export interface PluginAdminPage {
 }
 
 /**
+ * Sidebar navigation leaf (copied from plugins/types to avoid circular deps).
+ */
+export interface PluginAdminNavLeaf {
+	label: string;
+	icon?: string;
+	path: string;
+}
+
+/**
+ * Sidebar navigation group (copied from plugins/types to avoid circular deps).
+ * Children must be leaves — depth is capped at 2 levels.
+ */
+export interface PluginAdminNavGroup {
+	label: string;
+	icon?: string;
+	children: PluginAdminNavLeaf[];
+}
+
+export type PluginAdminNav = PluginAdminNavLeaf | PluginAdminNavGroup;
+
+/**
  * Dashboard widget definition (copied from plugins/types to avoid circular deps)
  */
 export interface PluginDashboardWidget {
@@ -96,6 +117,11 @@ export interface PluginDescriptor<TOptions = Record<string, unknown>> {
 	componentsEntry?: string;
 	/** Admin pages for navigation */
 	adminPages?: PluginAdminPage[];
+	/**
+	 * Sidebar navigation tree (optional presentation layer over `adminPages`).
+	 * When omitted, the admin sidebar derives a flat list from `adminPages`.
+	 */
+	adminNav?: PluginAdminNav[];
 	/** Dashboard widgets */
 	adminWidgets?: PluginDashboardWidget[];
 

@@ -24,6 +24,14 @@ import type { Manifest, ManifestAuthor, ManifestSecurityContact } from "./schema
  */
 export interface NormalisedAdmin {
 	pages: Array<{ path: string; label: string; icon?: string }>;
+	nav?: Array<
+		| { label: string; icon?: string; path: string }
+		| {
+				label: string;
+				icon?: string;
+				children: Array<{ label: string; icon?: string; path: string }>;
+		  }
+	>;
 	widgets: Array<{ id: string; title?: string; size?: "full" | "half" | "third" }>;
 }
 
@@ -181,6 +189,7 @@ export function normaliseManifest(manifest: Manifest, packageVersion?: string): 
 		storage: manifest.storage as PluginStorageConfig,
 		admin: {
 			pages: manifest.admin?.pages ?? [],
+			nav: manifest.admin?.nav,
 			widgets: manifest.admin?.widgets ?? [],
 		},
 	};

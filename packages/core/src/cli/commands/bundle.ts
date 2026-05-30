@@ -16,6 +16,7 @@
 import { createHash } from "node:crypto";
 import { readFile, stat, mkdir, writeFile, rm, copyFile, symlink, readdir } from "node:fs/promises";
 import { resolve, join, extname, basename } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { defineCommand } from "citty";
 import consola from "consola";
@@ -202,7 +203,7 @@ export const bundleCommand = defineCommand({
 			}
 
 			// Dynamic import of the built plugin
-			const pluginModule = (await import(mainOutputPath)) as Record<string, unknown>;
+			const pluginModule = (await import(pathToFileURL(mainOutputPath).href)) as Record<string, unknown>;
 
 			// Extract manifest from the imported module.
 			// Supports three patterns:
@@ -269,7 +270,7 @@ export const bundleCommand = defineCommand({
 								const backendBaseName = basename(backendEntry).replace(TS_EXT_RE, "");
 								const backendProbePath = await findBuildOutput(backendProbeDir, backendBaseName);
 								if (backendProbePath) {
-									const backendModule = (await import(backendProbePath)) as Record<string, unknown>;
+									const backendModule = (await import(pathToFileURL(backendProbePath).href)) as Record<string, unknown>;
 									const standardDef = (backendModule.default ?? {}) as Record<string, unknown>;
 									const hooks = standardDef.hooks as Record<string, unknown> | undefined;
 									const routes = standardDef.routes as Record<string, unknown> | undefined;

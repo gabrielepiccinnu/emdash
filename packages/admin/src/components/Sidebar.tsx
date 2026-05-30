@@ -34,6 +34,20 @@ export { KumoSidebar as Sidebar, useSidebar };
 const ROLE_ADMIN = 50;
 const ROLE_EDITOR = 40;
 
+interface PluginAdminNavLeafEntry {
+	label: string;
+	icon?: string;
+	path: string;
+}
+interface PluginAdminNavGroupEntry {
+	label: string;
+	icon?: string;
+	children: PluginAdminNavLeafEntry[];
+}
+type PluginAdminNavEntry = PluginAdminNavLeafEntry | PluginAdminNavGroupEntry;
+const isNavGroup = (entry: PluginAdminNavEntry): entry is PluginAdminNavGroupEntry =>
+	"children" in entry && Array.isArray(entry.children);
+
 export interface SidebarNavProps {
 	manifest: {
 		collections: Record<string, { label: string }>;
@@ -48,6 +62,13 @@ export interface SidebarNavProps {
 					label?: string;
 					icon?: string;
 				}>;
+				/**
+				 * Optional sidebar presentation tree (2 levels max). When present,
+				 * the sidebar renders this instead of deriving a flat list from
+				 * adminPages. Each leaf's `path` must match an `adminPages.path`
+				 * on the same plugin; mismatched leaves are skipped.
+				 */
+				adminNav?: Array<PluginAdminNavEntry>;
 				dashboardWidgets?: Array<{ id: string; title?: string }>;
 				version?: string;
 			}
@@ -79,6 +100,8 @@ interface NavItem {
 	minRole?: number;
 	/** Optional badge count (e.g., pending comments) */
 	badge?: number;
+	/** When set, this item is a group header rendered above indented children (2 levels max). */
+	children?: NavItem[];
 }
 
 /**
@@ -132,6 +155,125 @@ function NavMenuLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
 				link
 			)}
 		</KumoSidebar.MenuItem>
+	);
+}
+
+/**
+ * Build sidebar entries for plugin-contributed admin pages.
+ *
+ * If `config.adminNav` is present, honours the declared 2-level tree:
+ * leaves whose `path` is not in `config.adminPages` are dropped, groups
+ * with no surviving children collapse out entirely. Otherwise, falls back
+ * to the legacy flat list derived from `config.adminPages`.
+ *
+ * Exported for unit testing — the rendering layer (NavMenuGroup / NavMenuLink)
+ * is decoupled from this resolution step.
+ */
+export function buildPluginNavItems(
+	plugins: SidebarNavProps["manifest"]["plugins"],
+	pluginAdmins: Record<string, { pages?: Record<string, unknown> } | undefined>,
+	pluginIcon: React.ElementType,
+): NavItem[] {
+	const items: NavItem[] = [];
+	for (const [pluginId, config] of Object.entries(plugins)) {
+		if (config.enabled === false) continue;
+		if (!config.adminPages || config.adminPages.length === 0) continue;
+
+		const pluginPages = pluginAdmins[pluginId]?.pages;
+		const isBlocksMode = config.adminMode === "blocks";
+		const declaredPaths = new Set(config.adminPages.map((p) => p.path));
+
+		const pageIsMountable = (pagePath: string) =>
+			declaredPaths.has(pagePath) && (isBlocksMode || !!pluginPages?.[pagePath]);
+
+		const defaultLabel = pluginId
+			.split("-")
+			.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+			.join(" ");
+
+		if (config.adminNav && config.adminNav.length > 0) {
+			for (const entry of config.adminNav) {
+				if (isNavGroup(entry)) {
+					const children: NavItem[] = entry.children
+						.filter((child) => pageIsMountable(child.path))
+						.map((child) => ({
+							to: `/plugins/${pluginId}${child.path}`,
+							label: child.label,
+							icon: pluginIcon,
+						}));
+					if (children.length === 0) continue;
+					items.push({
+						to: `/plugins/${pluginId}#${entry.label}`,
+						label: entry.label,
+						icon: pluginIcon,
+						children,
+					});
+				} else if (pageIsMountable(entry.path)) {
+					items.push({
+						to: `/plugins/${pluginId}${entry.path}`,
+						label: entry.label,
+						icon: pluginIcon,
+					});
+				}
+			}
+		} else {
+			for (const page of config.adminPages) {
+				if (!isBlocksMode && !pluginPages?.[page.path]) continue;
+				items.push({
+					to: `/plugins/${pluginId}${page.path}`,
+					label: page.label || defaultLabel,
+					icon: pluginIcon,
+				});
+			}
+		}
+	}
+	return items;
+}
+
+/**
+ * Group header rendered as a non-interactive label above indented children.
+ * Used for plugin-declared `adminNav` groups (2 levels max).
+ */
+function NavMenuGroup({
+	item,
+	currentPath,
+}: {
+	item: NavItem;
+	currentPath: string;
+}) {
+	const { state } = useSidebar();
+	const Icon = item.icon;
+	const isCollapsed = state === "collapsed";
+
+	if (!item.children || item.children.length === 0) return null;
+
+	return (
+		<>
+			{!isCollapsed && (
+				<KumoSidebar.MenuItem>
+					<div
+						data-sidebar="nav-group-header"
+						className="emdash-nav-group-header flex w-full min-w-0 items-center gap-2.5 rounded-md px-3 py-1.5 min-h-[32px] text-[11px] font-semibold uppercase tracking-wide text-white/45"
+					>
+						<Icon className="size-[16px] shrink-0 text-white/35" aria-hidden="true" />
+						<span className="flex-1 truncate">{item.label}</span>
+					</div>
+				</KumoSidebar.MenuItem>
+			)}
+			{item.children.map((child, idx) => {
+				const childPath = resolveItemPath(child);
+				const active = isItemActive(childPath, currentPath);
+				return (
+					<div
+						key={`${child.to}-${idx}`}
+						data-sidebar="nav-group-child"
+						className={cn(!isCollapsed && "emdash-nav-group-child pl-3")}
+					>
+						<NavMenuLink item={child} isActive={active} />
+					</div>
+				);
+			})}
+		</>
 	);
 }
 
@@ -245,24 +387,7 @@ export function SidebarNav({ manifest }: SidebarNavProps) {
 		{ to: "/settings", label: t`Settings`, icon: Gear, minRole: ROLE_ADMIN },
 	);
 
-	const pluginItems: NavItem[] = [];
-	for (const [pluginId, config] of Object.entries(manifest.plugins)) {
-		if (config.enabled === false) continue;
-		if (config.adminPages && config.adminPages.length > 0) {
-			const pluginPages = pluginAdmins[pluginId]?.pages;
-			const isBlocksMode = config.adminMode === "blocks";
-			for (const page of config.adminPages) {
-				if (!isBlocksMode && !pluginPages?.[page.path]) continue;
-				const label =
-					page.label ||
-					pluginId
-						.split("-")
-						.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-						.join(" ");
-				pluginItems.push({ to: `/plugins/${pluginId}${page.path}`, label, icon: PuzzlePiece });
-			}
-		}
-	}
+	const pluginItems = buildPluginNavItems(manifest.plugins, pluginAdmins, PuzzlePiece);
 
 	const filterByRole = (items: NavItem[]) =>
 		items.filter((item) => !item.minRole || userRole >= item.minRole);
@@ -274,6 +399,15 @@ export function SidebarNav({ manifest }: SidebarNavProps) {
 
 	function renderNavItems(items: NavItem[]) {
 		return items.map((item, index) => {
+			if (item.children && item.children.length > 0) {
+				return (
+					<NavMenuGroup
+						key={`group-${item.to}-${index}`}
+						item={item}
+						currentPath={currentPath}
+					/>
+				);
+			}
 			const itemPath = resolveItemPath(item);
 			const active = isItemActive(itemPath, currentPath);
 			return <NavMenuLink key={`${item.to}-${index}`} item={item} isActive={active} />;

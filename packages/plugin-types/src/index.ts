@@ -224,6 +224,12 @@ export interface PluginAdminConfig {
 	settingsSchema?: unknown;
 	/** Admin pages declared by the plugin (rendered via Block Kit). */
 	pages?: Array<unknown>;
+	/**
+	 * Sidebar navigation tree (optional presentation layer over `pages`).
+	 * Shape is narrowed in core (`PluginAdminNav` union); the wire keeps it
+	 * loose so older runtimes can deserialise newer manifests gracefully.
+	 */
+	nav?: Array<unknown>;
 	/** Dashboard widgets declared by the plugin. */
 	widgets?: Array<unknown>;
 	/**
