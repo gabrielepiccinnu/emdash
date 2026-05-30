@@ -160,6 +160,7 @@ export function extractManifest(plugin: ResolvedPlugin): PluginManifest {
 			// Omit entry (it's a module specifier for the host, not relevant in bundles)
 			settingsSchema: plugin.admin.settingsSchema,
 			pages: plugin.admin.pages,
+			nav: plugin.admin.nav,
 			widgets: plugin.admin.widgets,
 		},
 	};

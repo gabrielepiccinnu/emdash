@@ -507,13 +507,56 @@ export const AdminWidgetSchema = z
 	});
 
 /**
- * Admin surface block in the manifest. Both fields are optional;
+ * A sidebar navigation leaf — links to a declared admin page. `path` must
+ * match one of `admin.pages[].path`; the host skips leaves whose target is
+ * missing. This is presentation only; the page itself is declared in
+ * `admin.pages`.
+ */
+export const AdminNavLeafSchema = z
+	.object({
+		label: z.string().min(1, "nav label cannot be empty").max(128),
+		icon: z.string().min(1).max(64).optional(),
+		path: z
+			.string()
+			.regex(
+				/^\/[a-z0-9][a-z0-9/_-]*$/i,
+				'nav path must start with "/" and match a declared admin page path',
+			),
+	})
+	.strict()
+	.meta({ title: "Admin nav leaf" });
+
+/**
+ * A sidebar navigation group — a labelled parent containing leaf children.
+ * Groups never nest (children are leaves only), capping sidebar depth at 2
+ * levels.
+ */
+export const AdminNavGroupSchema = z
+	.object({
+		label: z.string().min(1, "nav group label cannot be empty").max(128),
+		icon: z.string().min(1).max(64).optional(),
+		children: z
+			.array(AdminNavLeafSchema)
+			.min(1, "a nav group must have at least one child")
+			.max(32, "nav group children[] must have <= 32 entries"),
+	})
+	.strict()
+	.meta({ title: "Admin nav group" });
+
+export const AdminNavSchema = z.union([AdminNavLeafSchema, AdminNavGroupSchema]).meta({
+	title: "Admin nav entry",
+	description: "A leaf linking to an admin page, or a group of leaf children (2 levels max).",
+});
+
+/**
+ * Admin surface block in the manifest. All fields are optional;
  * plugins that don't expose admin UI at all simply omit the `admin`
  * key entirely.
  */
 export const AdminSchema = z
 	.object({
 		pages: z.array(AdminPageSchema).max(32, "admin.pages[] must have <= 32 entries").optional(),
+		nav: z.array(AdminNavSchema).max(32, "admin.nav[] must have <= 32 entries").optional(),
 		widgets: z
 			.array(AdminWidgetSchema)
 			.max(32, "admin.widgets[] must have <= 32 entries")
@@ -523,7 +566,7 @@ export const AdminSchema = z
 	.meta({
 		title: "Admin surface",
 		description:
-			"Pages and widgets the plugin exposes in the admin UI. The plugin's `admin` route handler renders Block Kit content for each path / widget id at runtime.",
+			"Pages, sidebar navigation, and widgets the plugin exposes in the admin UI. `pages` declares routes; the optional `nav` arranges them into a 2-level sidebar tree. The plugin's `admin` route handler renders Block Kit content for each path / widget id at runtime.",
 	});
 
 // ──────────────────────────────────────────────────────────────────────────

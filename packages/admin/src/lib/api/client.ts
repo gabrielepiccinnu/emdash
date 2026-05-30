@@ -103,6 +103,20 @@ export interface AdminManifest {
 				label?: string;
 				icon?: string;
 			}>;
+			/**
+			 * Optional sidebar navigation tree (2 levels max). When present, the
+			 * admin sidebar renders this instead of deriving a flat list from
+			 * `adminPages`. Each leaf's `path` must match an `adminPages.path`
+			 * on the same plugin; leaves whose path is missing are skipped.
+			 */
+			adminNav?: Array<
+				| { label: string; icon?: string; path: string }
+				| {
+						label: string;
+						icon?: string;
+						children: Array<{ label: string; icon?: string; path: string }>;
+				  }
+			>;
 			dashboardWidgets?: Array<{
 				id: string;
 				title?: string;

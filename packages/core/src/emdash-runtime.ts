@@ -14,6 +14,7 @@ import virtualConfig from "virtual:emdash/config";
 import { validateRev } from "./api/rev.js";
 import type {
 	EmDashConfig,
+	PluginAdminNav,
 	PluginAdminPage,
 	PluginDashboardWidget,
 } from "./astro/integration/runtime.js";
@@ -205,6 +206,15 @@ export interface SandboxedPluginEntry {
 	storage: PluginStorageConfig;
 	/** Admin pages */
 	adminPages?: Array<{ path: string; label?: string; icon?: string }>;
+	/** Sidebar navigation tree (optional presentation layer over adminPages) */
+	adminNav?: Array<
+		| { label: string; icon?: string; path: string }
+		| {
+				label: string;
+				icon?: string;
+				children: Array<{ label: string; icon?: string; path: string }>;
+		  }
+	>;
 	/** Dashboard widgets */
 	adminWidgets?: Array<{ id: string; title?: string; size?: string }>;
 	/** Admin entry module */
@@ -333,7 +343,7 @@ const marketplaceManifestCache = new Map<
 	{
 		id: string;
 		version: string;
-		admin?: { pages?: PluginAdminPage[]; widgets?: PluginDashboardWidget[] };
+		admin?: { pages?: PluginAdminPage[]; nav?: PluginAdminNav[]; widgets?: PluginDashboardWidget[] };
 	}
 >();
 /** Route metadata for sandboxed plugins: pluginId -> routeName -> RouteMeta */
@@ -1903,6 +1913,14 @@ export class EmDashRuntime {
 				sandboxed?: boolean;
 				adminMode?: "react" | "blocks" | "none";
 				adminPages?: Array<{ path: string; label?: string; icon?: string }>;
+				adminNav?: Array<
+					| { label: string; icon?: string; path: string }
+					| {
+							label: string;
+							icon?: string;
+							children: Array<{ label: string; icon?: string; path: string }>;
+					  }
+				>;
 				dashboardWidgets?: Array<{
 					id: string;
 					title?: string;
@@ -1946,6 +1964,7 @@ export class EmDashRuntime {
 				enabled,
 				adminMode,
 				adminPages: plugin.admin?.pages ?? [],
+				adminNav: plugin.admin?.nav,
 				dashboardWidgets: plugin.admin?.widgets ?? [],
 				portableTextBlocks: plugin.admin?.portableTextBlocks,
 				fieldWidgets: plugin.admin?.fieldWidgets,
@@ -1969,6 +1988,7 @@ export class EmDashRuntime {
 				sandboxed: true,
 				adminMode: hasAdminPages || hasWidgets ? "blocks" : "none",
 				adminPages: entry.adminPages ?? [],
+				adminNav: entry.adminNav,
 				dashboardWidgets: entry.adminWidgets ?? [],
 			};
 		}
@@ -1992,6 +2012,7 @@ export class EmDashRuntime {
 				sandboxed: true,
 				adminMode: hasAdminPages || hasWidgets ? "blocks" : "none",
 				adminPages: pages ?? [],
+				adminNav: meta.admin?.nav,
 				dashboardWidgets: widgets ?? [],
 			};
 		}

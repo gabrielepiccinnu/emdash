@@ -216,6 +216,7 @@ export function generatePluginsModule(descriptors: PluginDescriptor[]): string {
 					allowedHosts: descriptor.allowedHosts,
 					storage: descriptor.storage,
 					adminPages: descriptor.adminPages,
+					adminNav: descriptor.adminNav,
 					adminWidgets: descriptor.adminWidgets,
 				})})`,
 			);
@@ -549,6 +550,7 @@ export const sandboxedPlugins = [];
     allowedHosts: ${JSON.stringify(descriptor.allowedHosts ?? [])},
     storage: ${JSON.stringify(descriptor.storage ?? {})},
     adminPages: ${JSON.stringify(descriptor.adminPages ?? [])},
+    adminNav: ${JSON.stringify(descriptor.adminNav ?? null)},
     adminWidgets: ${JSON.stringify(descriptor.adminWidgets ?? [])},
     adminEntry: ${JSON.stringify(descriptor.adminEntry)},
     // Code read from: ${filePath}
