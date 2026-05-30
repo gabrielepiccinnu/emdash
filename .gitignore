@@ -85,3 +85,5 @@ query-counts-out/
 scripts/query-dumps/sqlite/
 scripts/query-dumps/d1/
 scripts/query-dumps/classification.*.md
+packages/plugins/multilanguage
+templates/emdash-bootstrap-theme
