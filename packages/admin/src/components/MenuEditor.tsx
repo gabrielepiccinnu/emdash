@@ -80,14 +80,14 @@ interface FlatItem {
 function buildDisplayList(items: MenuItem[]): FlatItem[] {
 	const result: FlatItem[] = [];
 	const roots = items
-		.filter((i) => !i.parent_id)
-		.toSorted((a, b) => a.sort_order - b.sort_order);
+		.filter((i) => !i.parentId)
+		.toSorted((a, b) => a.sortOrder - b.sortOrder);
 
 	for (const root of roots) {
 		result.push({ item: root, depth: 0 });
 		const children = items
-			.filter((i) => i.parent_id === root.id)
-			.toSorted((a, b) => a.sort_order - b.sort_order);
+			.filter((i) => i.parentId === root.id)
+			.toSorted((a, b) => a.sortOrder - b.sortOrder);
 		for (const child of children) {
 			result.push({ item: child, depth: 1 });
 		}
@@ -189,6 +189,7 @@ function SortableMenuItemRow({
 		>
 			{/* Drag handle */}
 			<button
+				type="button"
 				{...attributes}
 				{...listeners}
 				className="cursor-grab active:cursor-grabbing shrink-0 text-kumo-subtle hover:text-kumo-foreground"
@@ -208,10 +209,10 @@ function SortableMenuItemRow({
 					<div className="font-medium truncate">{item.label}</div>
 					<div className="text-sm text-kumo-subtle truncate">
 						{item.type === "custom" ? (
-							item.custom_url
+							item.customUrl
 						) : (
 							<span className="inline-flex items-center rounded-full bg-kumo-brand/10 px-2 py-0.5 text-xs font-medium text-kumo-brand">
-								{item.reference_collection ?? item.type}
+								{item.referenceCollection ?? item.type}
 							</span>
 						)}
 						{item.target === "_blank" && " (opens in new window)"}
@@ -322,7 +323,7 @@ export function MenuEditor() {
 	const [editError, setEditError] = React.useState<string | null>(null);
 
 	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
 		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
 	);
 
@@ -850,7 +851,7 @@ export function MenuEditor() {
 									required
 									pattern="(https?://.+|/.*)"
 									title={t`Enter a URL (https://…) or a relative path (/…)`}
-									defaultValue={editingItem.custom_url || ""}
+									defaultValue={editingItem.customUrl || ""}
 								/>
 							)}
 							<Select
