@@ -297,8 +297,15 @@ function ContentListPage() {
 
 	const i18n = manifest?.i18n;
 
-	// Default to defaultLocale when i18n is enabled and no locale specified
-	const activeLocale = i18n ? (localeParam ?? i18n.defaultLocale) : undefined;
+	// Locale resolution:
+	// - no param  → default locale (first visit)
+	// - "all"     → empty string (no filter — show all locales)
+	// - any code  → that locale
+	const activeLocale = i18n
+		? localeParam === "all"
+			? ""
+			: (localeParam ?? i18n.defaultLocale)
+		: undefined;
 
 	// Controlled sort state — passed to the list, and included in the query
 	// key so changing direction invalidates the current cursor chain.
@@ -411,11 +418,12 @@ function ContentListPage() {
 	}
 
 	const handleLocaleChange = (locale: string) => {
-		// Update URL search params without full navigation
+		// "" from the LocaleSwitcher's "All locales" option → sentinel "all"
+		// any code → that code
 		void navigate({
 			to: "/content/$collection",
 			params: { collection },
-			search: { locale: locale || undefined },
+			search: { locale: locale === "" ? "all" : locale },
 		});
 	};
 
